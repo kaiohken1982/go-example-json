@@ -11,6 +11,8 @@ import (
   "strings"
 
   "os"
+
+  "html/template"
 )
 
 /**
@@ -125,6 +127,40 @@ func executeSearch(terms []string) {
  * JSON Github example decode/encode end
  */
 
+
+/**
+ * HTML template functions start
+ */
+func daysAgo(t time.Time) int {
+  return int(time.Since(t).Hours() / 24)
+}
+
+func executeSearchWithTemplate(terms []string) {
+  result, err := SearchIssues(terms)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  const templ = `{{.TotalCount}} issues:
+    {{range .Items}}----------------------------------------
+    Number: {{.Number}}
+    User: {{.User.Login}}
+    Title: {{.Title | printf "%.64s"}}
+    Age: {{.CreatedAt | daysAgo}} days
+  {{end}}`
+
+  var report = template.Must(template.New("issuelist").
+    Funcs(template.FuncMap{"daysAgo": daysAgo}).
+    Parse(templ))
+
+  if err := report.Execute(os.Stdout, result); err != nil {
+    log.Fatal(err)
+  }
+}
+/**
+ * HTML template functions end
+ */
+
 func main() {
   // data := jsonEncode(movies)
   // data := jsonEncodeFormatted(movies)
@@ -132,5 +168,7 @@ func main() {
   // // fmt.Printf("%s\n", data)
   // fmt.Println(structData)
 
-  executeSearch(os.Args[1:])
+  // executeSearch(os.Args[1:])
+
+  executeSearchWithTemplate(os.Args[1:])
 }
